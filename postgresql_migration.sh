@@ -26,7 +26,7 @@ if [ -f "$LOCK_FILE" ]; then
 	exit
 fi
 
-trap "rm -f $LOCK_FILE" EXIT
+trap "/bin/rm -f $LOCK_FILE" EXIT
 touch $LOCK_FILE
 
 log() {
@@ -160,7 +160,7 @@ execute() {
 			if ! [ -d /var/lib/pgsql/migration/ ]; then
 				mkdir /var/lib/pgsql/migration/
 			fi
-			rm -rf /var/lib/pgsql/migration/*
+			/bin/rm -rf /var/lib/pgsql/migration/*
 			database=''
 			pg_dump_command=''
 			input="/var/lib/pgsql/tables_using_reg.txt"
