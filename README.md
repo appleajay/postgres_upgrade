@@ -4,7 +4,6 @@ A simple bash script to upgrade postgresql on redhat based systems(RHEL, CentOS 
 **Requirements**
 1. New postgresql packages should already be installed.
 2. Old postgresql service should be stopped in read-write mode. (If you are using hotstandby mode, remove recovery file then start-stop postgresql service)
-3. New Data dir mount point must have size greater then existing data size
 
 **How to?**
 1. Stop old postgresql service.
