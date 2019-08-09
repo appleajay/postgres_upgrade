@@ -1,12 +1,13 @@
 #!/bin/bash
 # ------------------------------------------------------------------
-# [Author]	 ajaypratap
-# [File]	 postgresql_migration.sh
 # [Description]        
-# This script will upgrade  postgresql-9.3 database to postgresql-10 
+#               This script will upgrade  postgresql-9.3 database to postgresql-10 
+# [File]        postgresql_migration.sh
+# [Version]     0.5.0
+# [Author]      ajay pratap
+# [Email]       ajaypratapmailbox@gmail.com
 # [github] https://github.com/appleajay/postgres_upgrade/
 #---Variables---------------------------------------------------------------
-VERSION=0.3.0
 SUBJECT=$0
 OLD_POSTGRES_VERSION=9.3
 NEW_POSTGRES_VERSION=10
@@ -60,14 +61,6 @@ sanity_checks() {
 		log "ERROR" "Try removing data dir for newer Postgresql version first"
 		exit
 	fi
-	log "INFO" "Checking Disk Space."
-    data_dir_size=`du -s "$OLD_POSTGRES_DATA_DIR" | cut -f -1`
-    free_disk_space=` df /var/lib/pgsql/ | awk '{print $4}' | awk 'NR==2'`
-    ten_gb=10485760
-    if [ $(($data_dir_size + $ten_gb)) -gt $(($free_disk_space)) ] ; then
-        log "ERROR" "Not enough space to Migrate Postgres Data. Clear up  $(( $(($data_dir_size + $ten_gb - $free_disk_space ))/1024)) MB more space."
-
-    fi
 
 	if [ -f "$OLD_POSTGRES_DATA_DIR/global/pg_control.old" ] ; then
 		log "WARN" "Seems like you are retrying to migrate postgresql."
