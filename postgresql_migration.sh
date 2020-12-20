@@ -6,7 +6,7 @@
 # [Version]     0.5.0
 # [Author]      ajay pratap
 # [Email]       ajaypratapmailbox@gmail.com
-# [github] https://github.com/appleajay/postgres_upgrade/
+# [github] https://github.com/ajayOO8/postgres_upgrade/
 #---Variables---------------------------------------------------------------
 SUBJECT=$0
 OLD_POSTGRES_VERSION=9.3
