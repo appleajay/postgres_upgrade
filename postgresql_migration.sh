@@ -5,7 +5,6 @@
 # [File]        postgresql_migration.sh
 # [Version]     0.5.0
 # [Author]      ajay pratap
-# [Email]       ajaypratapmailbox@gmail.com
 # [github] https://github.com/ajayOO8/postgres_upgrade/
 #---Variables---------------------------------------------------------------
 SUBJECT=$0
