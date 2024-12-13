@@ -7,7 +7,6 @@
 # [Author]      ajay pratap
 # [github] https://github.com/ajayOO8/postgres_upgrade/
 #---Variables---------------------------------------------------------------
-SUBJECT=$0
 OLD_POSTGRES_VERSION=9.3
 NEW_POSTGRES_VERSION=10
 OLD_POSTGRES_DATA_DIR=/var/lib/pgsql/"$OLD_POSTGRES_VERSION"/data
@@ -15,8 +14,7 @@ NEW_POSTGRES_DATA_DIR=/var/lib/pgsql/"$NEW_POSTGRES_VERSION"/data
 OLD_POSTGRES_BIN_DIR=/usr/pgsql-"$OLD_POSTGRES_VERSION"/bin
 NEW_POSTGRES_BIN_DIR=/usr/pgsql-"$NEW_POSTGRES_VERSION"/bin
 RESTORE_REGEX_TABLES=false
-FAILOVER_SETUP=false
-LOG=/tmp/pg_upgrade_`date +%s`.log
+LOG=/tmp/pg_upgrade_$(date +%s).log
 #---Util-------------------------------------------------------
 
 LOCK_FILE=/tmp/postgres_migration.lock
@@ -26,11 +24,11 @@ if [ -f "$LOCK_FILE" ]; then
 	exit
 fi
 
-trap "/bin/rm -f $LOCK_FILE" EXIT
+trap '/bin/rm -f $LOCK_FILE' EXIT
 touch $LOCK_FILE
 
 log() {
-    echo `date` " : [$1] : $2" >>  $LOG 
+    echo $(date) " : [$1] : $2" >>  $LOG 
     if [ $1 == "ERROR" ] || [ $1 == "WARN" ] || [ $1 == "INFO" ] ; then
         echo  "[$1] $2"
     fi
@@ -40,12 +38,12 @@ sanity_checks() {
 	log "INFO" "Validating setup..."
 	log "INFO" "Checking Postgresql-10 Packages"
 	#check if postgresql10 is installed or not
-	if [ `rpm -qa | grep postgresql"$NEW_POSTGRES_VERSION"-server | wc -l` -eq 0 ]; then 
+	if [ $(rpm -qa | grep postgresql"$NEW_POSTGRES_VERSION"-server | wc -l) -eq 0 ]; then 
 		log "ERROR" "postgresql"$NEW_POSTGRES_VERSION"-server is not Installed. Please install the following packages before proceding further: postgresql"$NEW_POSTGRES_VERSION"-server postgresql"$NEW_POSTGRES_VERSION"-10 postgresql"$NEW_POSTGRES_VERSION"-libs postgresql"$NEW_POSTGRES_VERSION"-contrib \n"
 		exit
 	fi
 	
-	if [ `rpm -qa | grep postgresql"$NEW_POSTGRES_VERSION"-"$NEW_POSTGRES_VERSION" | wc -l` -eq 0 ]; then 
+	if [ $(rpm -qa | grep postgresql"$NEW_POSTGRES_VERSION"-"$NEW_POSTGRES_VERSION" | wc -l) -eq 0 ]; then 
 		log "ERROR" "postgresql"$NEW_POSTGRES_VERSION"-$NEW_POSTGRES_VERSION is not Installed. Please install the following packages before proceding further: postgresql"$NEW_POSTGRES_VERSION"-server postgresql"$NEW_POSTGRES_VERSION"-10 postgresql"$NEW_POSTGRES_VERSION"-libs postgresql"$NEW_POSTGRES_VERSION"-contrib \n"
         exit
 	fi	
@@ -66,7 +64,7 @@ sanity_checks() {
 
 		read -p "Are you sure you want to continue(yes/no)? "
 		if [[ $REPLY =~ ^[Yy][eE][sS]$ ]] ; then
-           	`/bin/mv $OLD_POSTGRES_DATA_DIR/global/pg_control.old $OLD_POSTGRES_DATA_DIR/global/pg_control`
+           	$(/bin/mv $OLD_POSTGRES_DATA_DIR/global/pg_control.old $OLD_POSTGRES_DATA_DIR/global/pg_control)
 		else
 			log "INFO" "Exiting."
 			exit
@@ -82,7 +80,7 @@ os_version() {
             exit
     fi
 
-    ver=`rpm -E %{rhel}`
+    ver=$(rpm -E %{rhel})
     if [ $? -ne 0 ]; then
         if [[ "cat /etc/redhat-release" =~ " 6." ]] ; then
             ver="6"
@@ -106,7 +104,7 @@ execute() {
 		echo "ERROR" "Unable to start postgresql-"$OLD_POSTGRES_VERSION". Exiting"
 		exit	
 	fi
-	lc_colate=`psql -U postgres -c "select  datcollate from pg_database where datname='postgres'" -At -h 127.0.0.1`
+	lc_colate=$(psql -U postgres -c "select  datcollate from pg_database where datname='postgres'" -At -h 127.0.0.1)
 	log "DEBUG" "Locale for postgres is $lc_colate"
 
 	log "INFO" "Stopping postgresql-$OLD_POSTGRES_VERSION "
@@ -132,7 +130,7 @@ execute() {
 
 	log "DEBUG" "$initdb"
 	export PGSETUP_INITDB_OPTIONS="--locale=$lc_colate"
- 	rc=`$initdb 2>&1`
+ 	rc=$($initdb 2>&1)
 	if [ $? -ne 0 ] ; then
 		log "ERROR" "Unable to initializing Postgresql-$NEW_POSTGRES_VERSION Data Directory. $rc . Exiting"
 		exit
@@ -141,7 +139,7 @@ execute() {
 	log "INFO" "Checking Postgresql compatibility.."
 	pg_upgrade_compatibility="$NEW_POSTGRES_BIN_DIR/pg_upgrade -b $OLD_POSTGRES_BIN_DIR -B $NEW_POSTGRES_BIN_DIR -d $OLD_POSTGRES_DATA_DIR -D $NEW_POSTGRES_DATA_DIR  –v -c" 
 	log "DEBUG" "$pg_upgrade_compatibility"
-	rc=`su - postgres -c "$pg_upgrade_compatibility" 2>&1`
+	rc=$(su - postgres -c "$pg_upgrade_compatibility" 2>&1)
 	if [ $? -ne 0 ] ; then
 		log "ERROR" "$rc"
 
@@ -162,15 +160,15 @@ execute() {
 			      if [ "$database" != "" ] ; then
 			          echo "$pg_dump_command" >> /var/lib/pgsql/migration/pgdump_regex_tables.sh
 			      fi
-			        database=`echo "$line" | cut -d : -f 2 | tr -d ' '`
-				    filename="$database"_regex_tables_`date +%s`.sql
+			        database=$(echo "$line" | cut -d : -f 2 | tr -d ' ')
+				    filename="$database"_regex_tables_$(date +%s).sql
 			        pg_dump_command="$OLD_POSTGRES_BIN_DIR/pg_dump -U postgres -h 127.0.0.1 $database > /var/lib/pgsql/$filename"
 			        echo "$NEW_POSTGRES_BIN_DIR/psql -U postgres -h 127.0.0.1 $database< /var/lib/pgsql/$filename" >> /var/lib/pgsql/migration/restore_regex_tables.sh
 
 			  else
 
 			        table=${line%.*};
-			        table=`echo $table | tr -d ' '`
+			        table=$(echo $table | tr -d ' ')
 			        pg_dump_command="$pg_dump_command --table=$table"
 			        echo "$OLD_POSTGRES_BIN_DIR/psql -U postgres -h 127.0.0.1 $database  -c 'drop table $table' " >> /var/lib/pgsql/migration/drop_regex_tables.sh
 			  fi
@@ -186,18 +184,18 @@ execute() {
 		            exit
 		    fi
 			log "INFO" "Taking dump of postgresql regex_tables"
-			dump_tables=`cat /var/lib/pgsql/migration/pgdump_regex_tables.sh`
+			dump_tables=$(cat /var/lib/pgsql/migration/pgdump_regex_tables.sh)
 			log "DEBUG" "$dump_tables"
 			sh /var/lib/pgsql/migration/pgdump_regex_tables.sh			 
 			if [ $? -ne 0 ] ; then
-				reg_tables=`cat /var/lib/pgsql/tables_using_regex.txt`
+				reg_tables=$(cat /var/lib/pgsql/tables_using_regex.txt)
 				log "ERROR" "unable to dump following tables $reg_tables Please take dump of these tables manually, and drop them before to proceed further."
 				exit	
 			fi
 			log "INFO" "Regex tables backup at /var/lib/pgsql/"
 			
 			log "INFO" "Droping regex tables "
-			rc=`cat /var/lib/pgsql/migration/drop_regex_tables.sh`
+			rc=$(cat /var/lib/pgsql/migration/drop_regex_tables.sh)
 			log "INFO" "$rc"
 			sh /var/lib/pgsql/migration/drop_regex_tables.sh
 
@@ -226,7 +224,7 @@ execute() {
 	log "INFO" "Updating Postgresql. This may take few minutes depending upon DATA size."
 	pg_upgrade="$NEW_POSTGRES_BIN_DIR/pg_upgrade -b $OLD_POSTGRES_BIN_DIR -B $NEW_POSTGRES_BIN_DIR -d $OLD_POSTGRES_DATA_DIR -D $NEW_POSTGRES_DATA_DIR  –v -k"
 	log "DEBUG" "$pg_upgrade"
-	rc=`su - postgres -c "$pg_upgrade" 2>&1`
+	rc=$(su - postgres -c "$pg_upgrade" 2>&1)
 	if [ $? -ne 0 ] ; then
 
 		log "ERROR" "$rc"
@@ -238,7 +236,7 @@ execute() {
 	log "INFO" "Updating pg_hba and postgresql.conf"
 	copy_pghba=" /bin/cp $OLD_POSTGRES_DATA_DIR/pg_hba.conf  $NEW_POSTGRES_DATA_DIR/pg_hba.conf "
 	log "DEBUG" "$copy_pghba"
-	rc=`$copy_pghba`
+	rc=$($copy_pghba)
 	if [ $? -ne 0 ] ; then
 		log "WARN" "Unable to update pg_hba. Do it manually"
 		
@@ -246,7 +244,7 @@ execute() {
 
 	copy_postgresql_conf=" /bin/cp $OLD_POSTGRES_DATA_DIR/postgresql.conf  $NEW_POSTGRES_DATA_DIR/postgresql.conf "
     log "DEBUG" "$copy_postgresql_conf"
-    rc=`$copy_postgresql_conf`
+    rc=$($copy_postgresql_conf)
     if [ $? -ne 0 ] ; then
             log "WARN" "Unable to update pg_hba. Do it manually"
 
@@ -256,7 +254,7 @@ execute() {
 	log "INFO" "Starting Postgresql-$NEW_POSTGRES_VERSION"
 	start_new_postgres="service postgresql-$NEW_POSTGRES_VERSION start"
 	log "DEBUG" "$start_new_postgres"
-	rc=`$start_new_postgres`
+	rc=$($start_new_postgres)
 	if [ $? -ne 0 ] ; then
 		if [ "$RESTORE_REGEX_TABLES" =  true ] ; then
 			log "ERROR" "UNABLE to start Postgresql-10 service."
@@ -271,7 +269,7 @@ execute() {
 	
 		if [ "$RESTORE_REGEX_TABLES" =  true ] ; then
 			log "INFO" "Restoring dropped regex tables"		
-			restore_regex_tables=`cat /var/lib/pgsql/migration/restore_regex_tables.sh`
+			restore_regex_tables=$(cat /var/lib/pgsql/migration/restore_regex_tables.sh)
 			log "INFO" "$restore_regex_tables"
 			sh /var/lib/pgsql/migration/restore_regex_tables.sh
 			if [ $? -ne 0 ]; then
@@ -280,14 +278,14 @@ execute() {
 			fi
 		fi
 		log "INFO" "Analysing newly migrated DB"
-		CPU=`grep -c ^processor /proc/cpuinfo` 
+		CPU=$(grep -c ^processor /proc/cpuinfo) 
 		if [ $(($CPU))  -lt 4 ] ; then
 			CPU=2
 		else
 			CPU=$(($CPU - 2))
 		fi 
 		analyze_DB="/usr/pgsql-10/bin/vacuumdb --all --analyze-in-stages  -j "$CPU" "
-		rc=`su - postgres -c "$analyze_DB" 2>&1`
+		rc=$(su - postgres -c "$analyze_DB" 2>&1)
 
 		log "INFO" "$rc"
 	fi
